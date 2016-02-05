@@ -1,0 +1,240 @@
+=====================================================================================
+                      MRS3D - MultiResolution in Spherical 3D            
+                                Library and tools                          
+                                  v1.0b  09/2013                           
+=====================================================================================
+
+
+MRS3D is a C++ package providing a library and a set of tools allowing the manipulation
+of Spherical Fourier-Bessel Coefficients and the implementation of MultiResolution
+algorithms adapted to 3D data in spherical coordinates.
+In particular, MRS3D implements a Spherical 3D Isotropic Wavelet Decomposition. 
+
+As a part of MRS3D, this package also contains the FastDSBT C++ library wich implements
+a Discrete Spherical Bessel Transform based on a matrix formalism.
+
+MRS3D is distributed under the CeCILL License (see LICENSE.CeCILL) in the hope that it 
+will be usefull but without any warranty. 
+
+The following softwares are used in MRS3D:
+    - HEALPix (http://healpix.jpl.nasa.gov/) distributed under the GNU GPL
+    - 3DEX (https://github.com/ixkael/3DEX) developed by Boris Leistedt and released
+under the CeCiLL License. See the ArXiV paper http://arxiv.org/abs/1111.3591.
+    
+This package contains a test data set extracted from a cosmological N-body simulation
+carried out by the Virgo Supercomputing Consortium using computers based at
+Computing Centre of the Max-Planck Society in Garching and at the Edinburgh 
+Parallel Computing Centre. http://www.mpa-garching.mpg.de/Virgo/VLC.html 
+
+Author: François Lanusse (francois.lanusse@gmail.com)
+
+Copyright CEA 2013
+
+===================
+   Requirements
+===================
+
+In order to be able to compile the MRS3D package, the following softwares are required:
+
+    - cmake 	     (http://cmake.org/cmake/resources/software.html)
+    - HEALPix 	     (http://sourceforge.net/projects/healpix/files/)
+    - cfitsio        (http://heasarc.gsfc.nasa.gov/fitsio/)
+    - OpenMPI or other MPI implementation
+    - gfortran and gcc
+    
+
+The following softwares are optional:
+    - Doxygen
+    - IDL     
+
+===================
+     Building
+===================
+
+Before building the MRS3D package, it is necessary to build and install the HEALPix 
+package (Fortran AND CXX versions).
+
+First, unpack the tar.gz archive:
+  
+    $ tar -xvzf MRS3D.tar.gz
+    $ cd MRS3D
+    
+Set the CFITSIO_DIR environment variable to the directory containing libcfitsio.a:
+
+    $ export CFITSIO_DIR=/usr/lib
+
+If IDL is installed on your system, you can build the MRS3D IDL interface by setting
+the environment variable IDL_DIR to the IDL root directory:
+
+    $ export IDL_DIR=/Applications/itt/idl
+
+By default, the binary tools, headers and libraries will be installed in the MRS3D 
+directory. To install them elsewhere on your sytem (e.g. /usr/local), you can set 
+the INSTALL_DIR environment variable:
+
+    $ export INSTALL_DIR=/usr/local        [ Optional ]
+
+Compile the package:
+
+    $ mkdir build
+    $ cd build
+    $ cmake ..
+    $ make all
+    $ make install  
+
+To build the documentation:
+    
+    $ make doc
+
+The html documentation will be available at doc/html/index.html.
+
+If LaTeX is installed on your system, you can also build the pdf documentation by
+going to the doc/latex subdirectory and typing make.
+
+
+===================
+ Running the code
+===================
+
+The transformations implemented in MRS3D require the values of zeros of Bessel functions.
+Instead of behing calculated each time, these values are tabulated inside a binary FITS
+file. This file, referred to as qlnTable, must be provided as first argument of all MRS3D
+commands.
+A precomputed qlnTable is provided with MRS3D and contains the first 3000 zeros of Bessel
+functions up to the order 2000. This file should be sufficient for most applications.
+To compute a larger qlnTable, the gen_qln tool is provided. The following command will
+generate a table containing the first 2000 zeros of Bessel functions up to order 4000.
+
+    $ gen_qln qlnTable.fits 4000 2000
+
+
+MRS3D provides two main binary tools almn2wavelet and waveletThresholding:
+
+  > almn2wavelet : Computes an Isotropic Undecimated Spherical 3D Wavelet decomposition 
+from an almn .fits file.
+
+  > waveletThresholding : Applies wavelet hard thresholding to the input almn .fits file.
+
+
+These tools work on Spherical Fourier-Bessel coefficients stored in "almn" FITS files.
+In order to compute almn coefficients to test these functions, two additional tools are
+provided field2almn and almn2field:
+  
+  > field2almn : Computes the Discrete Spherical Fourier-Bessel Transform from a 3D 
+cartesian field .fits file.
+
+  > almn2field : Reconstructs a cartesian 3D field from an almn .fits file.
+
+
+As an example, to decompose a field into wavelet scales from the MRS3D root directory run:
+
+    $ bin/field2almn test/qlnTable.fits test/VirgoField256.fits test/VirgoAlmn.fits 512 250.0 256 256 256
+Will store in "VirgoAlmn.fits" coefficients computed from the field "VirgoField256.fits" 
+using a HEALPix resolution of nside=512, a boundary condition rmax=250.0 Mpc/h, up to 
+the orders lmax=256, mmax=256 and nmax=256.
+
+    $ bin/almn2wavelet test/qlnTable.fits test/VirgoAlmn.fits wavelet 512 4 3.5
+This command will produce 5 FITS files (wavelet_0.fits wavelet_1.fits...), one for each
+wavelet scale, plus one for the smoothed density. The cutoff frequency of the low pass 
+filter is set to 3.5
+
+    $ bin/almn2field test/qlnTable.fits test/wavelet_0.fits test/waveletField_0.fits 256 479.0 512
+Reconstructs the density field of the first wavelet scale inside a cube of size
+256x256x256 and physical size 479.0 Mpc/h using a Healpix resolution of nside=512.
+
+
+Now, to visualize the density fields, the IDL interface can be used, see the next section.
+
+
+===================
+  IDL Interface
+===================
+
+To work on spherical Fourier-Bessel coefficients and 3D fields from IDL, MRS3D comes with
+an IDL interface. The IDL procedures are in src/IDL. In order to work these procedures
+load libMRS3DIDL and by default expect the library to be in the same directory.
+To setup the IDL procedures, go to src/IDL and create a symlink to the libMRS3DIDL library:
+
+    $ ln -s ../../lib/libmrs3d_IDL.dylib ./libmrs3d_IDL.dylib
+
+To setup the FastDSBT IDL interface use as well:
+
+    $ ln -s ../../lib/libfastDSBT_IDL.dylib ./libfastDSBT_IDL.dylib
+
+(under linux, the libraries in /lib will be .so and not .dylib but keep the name in .dylib
+for the symlinks)
+
+In the /src/IDL directory, launch IDL.
+
+Available features: 
+    - Compute power spectrum from almn
+    - Save/Load power spectrum to/from FITS files
+    - Save/Load almn to/from FITS files
+    - Save/Load cartesian density fiels to/from FITS files
+    - Convert almn to field and field to almn (The use of the binary tools is prefered)
+
+Example of how to visualize the wavelet scale computed at the previous section:
+
+    IDL> fieldWavelet = mrs3d_load_field('/path-to-MRS3D/test/waveletField_0.fits')
+    IDL> ivolume, fieldWavelet
+
+To get help on the mrs3d_* commands, set the help keyword (e.g. mrs3d_save_field,/help)
+
+
+===================
+ Parallel execution
+===================
+
+MRS3D is designed to take full advantage of OpenMP and MPI. 
+
+All the tools provided with MRS3D are parallelized using OpenMP and will by default run using a thread by processor core.
+To manually set the number of threads used by the command set the environment variable OMP_NUM_THREADS:
+    export OMP_NUM_THREADS=4   (bash)
+or  setenv OMP_NUM_THREADS 4   (tcsh)
+
+
+To launch a command using several MPI processes:
+  mpirun -np 4 [command followed by arguments]
+
+!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!
+When using MPI, be sure to use powers of 2 for the number
+of l,m and n coefficients.
+Since l goes from 0 to lmax, you must set l=2^i -1 !!!!
+The same goes for m.
+Since n varies from 1 to nmax you can directly set nmax= 2^l
+
+A valid set of (lmax,mmax,nmax) is : 1023 1023 512
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 
+
+An example of a PBS script to run a command on a computer cluster is provided below:
+
+-----------------------------------waveletThresholding.job----------------------------------
+#!/bin/sh
+#PBS -l pmem=15G
+#PBS -l pvmem=16G
+#PBS -l mem=120G
+#PBS -l vmem=128G
+#PBS -l nodes=8:ppn=1
+#PBS -W x=NACCESSPOLICY:SINGLEJOB
+#PBS -l walltime=100:00:00
+
+#PBS -M [your email address]
+#PBS -m abe
+
+export OMP_NUM_THREADS=8
+cd [path to working directory]
+cat $PBS_NODEFILE | sort | uniq > machinefile.txt
+
+echo "----Begining job----" > log
+date >> log
+echo "--------------------" >> log
+
+mpiexec -machinefile machinefile.txt -np 8 ./waveletThresholding qlnTable_2000_3000.fits Almn.fits ThresholdedAlmn.fits 2048 250.0 5 5 9.0 0.75 >> log
+
+echo "----Job done--------" >> log
+date >> log
+
+----------------------------------------------------------------------------------------------
+
+To launch the job : qsub waveletThresholding.job
