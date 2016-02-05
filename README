@@ -20,11 +20,6 @@ The following softwares are used in MRS3D:
     - HEALPix (http://healpix.jpl.nasa.gov/) distributed under the GNU GPL
     - 3DEX (https://github.com/ixkael/3DEX) developed by Boris Leistedt and released
 under the CeCiLL License. See the ArXiV paper http://arxiv.org/abs/1111.3591.
-    
-This package contains a test data set extracted from a cosmological N-body simulation
-carried out by the Virgo Supercomputing Consortium using computers based at
-Computing Centre of the Max-Planck Society in Garching and at the Edinburgh 
-Parallel Computing Centre. http://www.mpa-garching.mpg.de/Virgo/VLC.html 
 
 Author: François Lanusse (francois.lanusse@gmail.com)
 
